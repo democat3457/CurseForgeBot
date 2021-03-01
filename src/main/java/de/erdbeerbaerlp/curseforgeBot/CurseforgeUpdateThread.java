@@ -2,16 +2,19 @@ package de.erdbeerbaerlp.curseforgeBot;
 
 import com.therandomlabs.curseapi.CurseAPI;
 import com.therandomlabs.curseapi.CurseException;
+import com.therandomlabs.curseapi.file.CurseFile;
+import com.therandomlabs.curseapi.file.CurseFiles;
 import com.therandomlabs.curseapi.project.CurseProject;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.TextChannel;
 
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.Collections;
 
 public class CurseforgeUpdateThread extends Thread {
     private final CurseProject proj;
-    private final String channelID;
+    private String channelID;
     private String roleID = "";
 
     CurseforgeUpdateThread(String id) throws CurseException {
@@ -35,24 +38,34 @@ public class CurseforgeUpdateThread extends Thread {
 
     @Override
     public void run() {
-        while (true) {
-            try {
-                System.out.println("<" + proj.name() + "> Cached: " + Main.cache.get(proj.name()) + " Newest:" + proj.files().first().id());
-                if (Main.cfg.isNewFile(proj.name(), proj.files().first().id())) {
-                    TextChannel channel = Main.jda.getTextChannelById(channelID);
-                    //noinspection ConstantConditions
-                    Role role = roleID.isEmpty() ? null : channel.getGuild().getRoleById(roleID);
-                    if (!(role == null)) {
-                        EmbedMessage.sendPingableUpdateNotification(role, channel, proj);
-                    } else EmbedMessage.sendUpdateNotification(channel, proj);
-                    Main.cache.put(proj.name(), proj.files().first().id());
-                    Main.cacheChanged = true;
+        TextChannel channel = Main.jda.getTextChannelById(channelID);
+        //noinspection ConstantConditions
+        Role role = roleID.isEmpty() ? null : channel.getGuild().getRoleById(roleID);
+        try {
+            String projName = proj.name();
+            CurseFiles<CurseFile> projFiles = proj.files();
+            int newestFileId = projFiles.first().id();
+            
+            while (true) {
+                try {
+                    System.out.println("<" + projName + "> Cached: " + Main.cache.get(projName) + " Newest:" + newestFileId);
+                    if (Main.cfg.isNewFile(projName, newestFileId)) {
+                        if (Main.cfg.sendAllUpdates || (!Collections.disjoint(Main.cfg.updateVersions, EmbedMessage.getGameVersionsAsList(proj)))) {
+                            if (role != null) {
+                                EmbedMessage.sendPingableUpdateNotification(role, channel, proj);
+                            } else EmbedMessage.sendUpdateNotification(channel, proj);
+                        }
+                        Main.cache.put(projName, newestFileId);
+                        Main.cacheChanged = true;
+                    }
+                    sleep(TimeUnit.SECONDS.toMillis(Main.cfg.pollingTime));
+                    projFiles = proj.refreshFiles();
+                    newestFileId = projFiles.first().id();
+                } catch (InterruptedException | CurseException ignored) {
                 }
-                sleep(TimeUnit.SECONDS.toMillis(10));
-                proj.refreshFiles();
-            } catch (InterruptedException | CurseException ignored) {
-                ignored.printStackTrace();
             }
+        } catch (CurseException ignored) {
+            ignored.printStackTrace();
         }
     }
 }

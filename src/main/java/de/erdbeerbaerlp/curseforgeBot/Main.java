@@ -47,7 +47,7 @@ public class Main {
             debug = line.hasOption("debug");
 
 
-            System.out.println("Cought command line args!");
+            System.out.println("Caught command line args!");
             useGithub = line.hasOption("github");
             System.out.println("Using github: " + useGithub);
             if (line.hasOption("token") && cfg.BOT_TOKEN.equals("args")) cfg.BOT_TOKEN = line.getOptionValue("token");
@@ -89,7 +89,7 @@ public class Main {
                 System.err.println("You didnt modify the config! This bot wont work without Channel ID or Token!");
                 System.exit(1);
             }
-            System.out.println("Bot-Token is " + cfg.BOT_TOKEN);
+            if (debug) System.out.println("Bot-Token is " + cfg.BOT_TOKEN);
             try {
                 jda = new JDABuilder()
                         .setToken(cfg.BOT_TOKEN)
@@ -124,6 +124,7 @@ public class Main {
             } else cfg.loadCache();
             for (String p : cfg.IDs) {
                 try {
+                    if (debug) System.out.println("Starting update thread " + p);
                     new CurseforgeUpdateThread(p).start();
                 } catch (CurseException e) {
                     e.printStackTrace();
@@ -139,7 +140,8 @@ public class Main {
         }*/
             while (true) {
                 try {
-                    Thread.sleep(TimeUnit.SECONDS.toMillis(30));
+                    if (debug) System.out.println("Sleeping for " + (long) (TimeUnit.SECONDS.toMillis(cfg.pollingTime)) + "ms.");
+                    Thread.sleep((long) (TimeUnit.SECONDS.toMillis(cfg.pollingTime)));
                     System.out.println("MAIN Tick");
                     System.out.println(threads);
                     if (cacheChanged) {

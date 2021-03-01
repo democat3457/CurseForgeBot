@@ -18,8 +18,11 @@ public class Cfg {
     public String BOT_TOKEN;
     public List<String> IDs;
     public String DefaultChannel;
+    public boolean sendAllUpdates;
+    public List<String> updateVersions;
     public String githubToken;
     public String githubRepo;
+    public long pollingTime;
     public String changlogDiscordFormat;
     public String messageDescription;
     public String updateFileLink;
@@ -71,8 +74,21 @@ public class Cfg {
         BOT_TOKEN = conf.getString("BotToken");
         IDs = conf.getStringList("ids");
         DefaultChannel = conf.getString("DefaultChannelID");
+        try {
+            sendAllUpdates = conf.getBoolean("sendAllUpdates");
+        } catch (Exception e) {
+            System.out.println("Invalid value for sendAllUpdates!");
+            sendAllUpdates = true;
+        }
+        updateVersions = conf.getStringList("updateVersions");
         githubToken = conf.getString("githubToken");
         githubRepo = conf.getString("githubRepo");
+        try {
+            pollingTime = conf.getLong("pollingTime");
+        } catch (Exception e) {
+            System.out.println("Invalid value for pollingTime!");
+            pollingTime = 10;
+        }
         changlogDiscordFormat = conf.getString("changelogDiscordFormat");
         messageDescription = conf.getString("messageDescription");
         updateFileLink = conf.getString("updateFileLink");

@@ -8,7 +8,10 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.TextChannel;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Iterator;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 
@@ -187,6 +190,21 @@ public class EmbedMessage {
             out = out + s + (it.hasNext() ? ", " : "");
         }
         return out;
+    }
+    
+    /**
+     * Gets the game versions as a list.
+     *
+     * @param proj the proj
+     * @return the list of game versions
+     * @throws CurseException the curse exception
+     */
+    @SuppressWarnings("StringConcatenationInLoop")
+    public static List<String> getGameVersionsAsList(final CurseProject proj) throws CurseException {
+        if (proj.files().first().gameVersionStrings().isEmpty())
+            return Arrays.asList("UNKNOWN");
+        
+        return proj.files().first().gameVersionStrings().stream().sorted().collect(Collectors.toList());
     }
 
     /**
