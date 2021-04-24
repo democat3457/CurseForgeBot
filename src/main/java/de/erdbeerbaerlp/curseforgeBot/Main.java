@@ -91,8 +91,7 @@ public class Main {
             }
             if (debug) System.out.println("Bot-Token is " + cfg.BOT_TOKEN);
             try {
-                jda = new JDABuilder()
-                        .setToken(cfg.BOT_TOKEN)
+                jda = JDABuilder.createLight(cfg.BOT_TOKEN)
                         .build().awaitReady();
             } catch (Exception e) {
                 System.err.println("<JDA> " + e.getMessage());

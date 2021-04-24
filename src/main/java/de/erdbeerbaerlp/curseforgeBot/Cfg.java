@@ -140,7 +140,7 @@ public class Cfg {
     @Nullable
     GHContent getGHCache() throws IOException {
         if (!doesGHCacheExist()) return null;
-        return Main.github.searchContent().filename("caches").extension("txt").repo(Main.repo.getName()).user(Main.github.getMyself().getLogin()).list().asList().get(0);
+        return Main.github.searchContent().filename("caches").extension("txt").repo(Main.github.getMyself().getLogin() + "/" + Main.repo.getName()).list().toList().get(0);
     }
 
     void loadCache() {

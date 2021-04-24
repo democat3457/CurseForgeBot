@@ -2,13 +2,17 @@ plugins {
     id 'java'
     id 'application'
 }
-version = '1.2.3'
+version = '1.2.4'
 group = "de.erdbeerbaerlp.curseforgeBot" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 mainClassName = 'de.erdbeerbaerlp.curseforgeBot.Main'
 repositories {
-    jcenter()
+    mavenCentral()
     maven {
-        url "https://jitpack.io"
+        url 'https://jitpack.io'
+    }
+    maven {
+        name 'm2-dv8tion'
+        url 'https://m2.dv8tion.net/releases'
     }
 }
 configurations {
@@ -16,18 +20,18 @@ configurations {
     compile.extendsFrom(embed)
 }
 dependencies {
-    embed('net.dv8tion:JDA:4.2.0_192'){
+    embed('net.dv8tion:JDA:4.2.1_253'){
         transitive = true
         exclude module: 'opus-java'
 
     }
-    embed("com.github.TheRandomLabs:CurseAPI:master-SNAPSHOT"){
+    embed('com.github.TheRandomLabs:CurseAPI:master-SNAPSHOT'){
         transitive = true
     }
     embed group: 'com.typesafe', name: 'config', version: '1.4.0'
     embed 'es.nitaur.markdown:txtmark:0.16'
     embed group: 'commons-cli', name: 'commons-cli', version: '1.4'
-    embed(group: 'org.kohsuke', name: 'github-api', version: '1.116'){
+    embed(group: 'org.kohsuke', name: 'github-api', version: '1.128'){
         exclude module: 'okhttp'
     }
 }
@@ -44,3 +48,8 @@ jar {
         )
     }
 }
+gradle.projectsEvaluated {
+    tasks.withType(JavaCompile) {
+        options.compilerArgs << "-Xlint:deprecation"
+    }
+} 
