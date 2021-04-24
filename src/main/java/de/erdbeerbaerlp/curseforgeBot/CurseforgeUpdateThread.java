@@ -50,7 +50,7 @@ public class CurseforgeUpdateThread extends Thread {
             while (true) {
                 try {
                     if (Main.debug)
-                        System.out.println("<" + projName + "> Cached: " + Main.cache.get(projId) + " Newest:" + newestFileId);
+                        System.out.println("<" + projName + "> Cached: " + Main.cache.get(projId) + " Newest: " + newestFileId);
                     if (Main.cfg.isNewFile(projId, newestFileId)) {
                         if (Main.cfg.sendAllUpdates || (!Collections.disjoint(Main.cfg.updateVersions, EmbedMessage.getGameVersionsAsList(proj)))) {
                             if (role != null) EmbedMessage.sendPingableUpdateNotification(role, channel, proj);

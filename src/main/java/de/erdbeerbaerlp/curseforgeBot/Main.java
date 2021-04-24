@@ -3,6 +3,7 @@ package de.erdbeerbaerlp.curseforgeBot;
 
 import com.therandomlabs.curseapi.CurseAPI;
 import com.therandomlabs.curseapi.CurseException;
+import com.therandomlabs.curseapi.minecraft.CurseAPIMinecraft;
 import com.therandomlabs.curseapi.project.CurseProject;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -32,6 +33,8 @@ public class Main {
     static JDA jda;
 
     public static void main(String[] args) {
+        CurseAPIMinecraft.initialize();
+
         final Options o = new Options();
         o.addOption("debug", false, "Enables debug log");
         final Option token = new Option("token", true, "Provides the bot token");
