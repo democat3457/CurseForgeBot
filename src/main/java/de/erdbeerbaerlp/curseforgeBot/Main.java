@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit;
 
 public class Main {
     public static final Cfg cfg = new Cfg();
-    static final Map<String, Integer> cache = new HashMap<>();
+    static final Map<Integer, Integer> cache = new HashMap<>();
     static final int CFG_VERSION = 4;
     static GitHub github;
     static ArrayList<CurseforgeUpdateThread> threads = new ArrayList<>();
@@ -104,7 +104,7 @@ public class Main {
                         final Optional<CurseProject> project = CurseAPI.project(Integer.parseInt(p.split(";;")[0]));
                         if (!project.isPresent()) throw new CurseException("Project not found");
                         final CurseProject pr = project.get();
-                        cache.put(pr.name(), pr.files().first().id());
+                        cache.put(pr.id(), pr.files().first().id());
                     } catch (CurseException e) {
                         e.printStackTrace();
                     }
@@ -120,7 +120,10 @@ public class Main {
             }*/
                 cfg.saveCache();
                 System.out.println("Done!");
-            } else cfg.loadCache();
+            } else {
+                cfg.loadCache();
+                if (cacheChanged) cfg.saveCache();
+            }
             for (String p : cfg.IDs) {
                 try {
                     if (debug) System.out.println("Starting update thread " + p);
@@ -142,7 +145,6 @@ public class Main {
                     if (debug) System.out.println("Sleeping for " + (long) (TimeUnit.SECONDS.toMillis(cfg.pollingTime)) + "ms.");
                     Thread.sleep((long) (TimeUnit.SECONDS.toMillis(cfg.pollingTime)));
                     System.out.println("MAIN Tick");
-                    System.out.println(threads);
                     if (cacheChanged) {
                         System.out.println("Saving changed caches...");
                         cacheChanged = false;

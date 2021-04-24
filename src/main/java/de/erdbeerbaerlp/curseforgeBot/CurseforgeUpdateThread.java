@@ -40,32 +40,34 @@ public class CurseforgeUpdateThread extends Thread {
     public void run() {
         TextChannel channel = Main.jda.getTextChannelById(channelID);
         //noinspection ConstantConditions
-        Role role = roleID.isEmpty() ? null : channel.getGuild().getRoleById(roleID);
+        final Role role = roleID.isEmpty() ? null : channel.getGuild().getRoleById(roleID);
         try {
             String projName = proj.name();
+            int projId = proj.id();
             CurseFiles<CurseFile> projFiles = proj.files();
             int newestFileId = projFiles.first().id();
             
             while (true) {
                 try {
-                    System.out.println("<" + projName + "> Cached: " + Main.cache.get(projName) + " Newest:" + newestFileId);
-                    if (Main.cfg.isNewFile(projName, newestFileId)) {
+                    if (Main.debug)
+                        System.out.println("<" + projName + "> Cached: " + Main.cache.get(projId) + " Newest:" + newestFileId);
+                    if (Main.cfg.isNewFile(projId, newestFileId)) {
                         if (Main.cfg.sendAllUpdates || (!Collections.disjoint(Main.cfg.updateVersions, EmbedMessage.getGameVersionsAsList(proj)))) {
-                            if (role != null) {
-                                EmbedMessage.sendPingableUpdateNotification(role, channel, proj);
-                            } else EmbedMessage.sendUpdateNotification(channel, proj);
+                            if (role != null) EmbedMessage.sendPingableUpdateNotification(role, channel, proj);
+                            else EmbedMessage.sendUpdateNotification(channel, proj);
                         }
-                        Main.cache.put(projName, newestFileId);
+                        Main.cache.put(projId, newestFileId);
                         Main.cacheChanged = true;
                     }
                     sleep(TimeUnit.SECONDS.toMillis(Main.cfg.pollingTime));
                     projFiles = proj.refreshFiles();
                     newestFileId = projFiles.first().id();
-                } catch (InterruptedException | CurseException ignored) {
+                } catch (InterruptedException | CurseException e) {
+                    e.printStackTrace();
                 }
             }
-        } catch (CurseException ignored) {
-            ignored.printStackTrace();
+        } catch (CurseException e) {
+            e.printStackTrace();
         }
     }
 }
