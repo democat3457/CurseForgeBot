@@ -193,7 +193,7 @@ public class Cfg {
                 Thread.sleep(2000);
             } catch (CurseException | InterruptedException ignored) {
             }
-            if (id == -1) System.out.println("Cannot find project");
+            if (id == -1) System.out.println("Cannot find previous project");
         }
         Main.cache.put(id, Integer.parseInt(ca[1]));
     }
