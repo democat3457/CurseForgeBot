@@ -134,7 +134,7 @@ public class Cfg {
     }
 
     boolean doesGHCacheExist() throws IOException {
-        return Main.github.searchContent().filename("caches").extension("txt").repo(Main.repo.getName()).user(Main.github.getMyself().getLogin()).list().getTotalCount() > 0;
+        return Main.github.searchContent().filename("caches").extension("txt").repo(Main.github.getMyself().getLogin() + "/" + Main.repo.getName()).list().getTotalCount() > 0;
     }
 
     @Nullable
