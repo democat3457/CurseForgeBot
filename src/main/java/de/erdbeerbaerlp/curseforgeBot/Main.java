@@ -3,6 +3,8 @@ package de.erdbeerbaerlp.curseforgeBot;
 
 import com.therandomlabs.curseapi.CurseAPI;
 import com.therandomlabs.curseapi.CurseException;
+import com.therandomlabs.curseapi.file.CurseDependency;
+import com.therandomlabs.curseapi.file.CurseDependencyType;
 import com.therandomlabs.curseapi.minecraft.CurseAPIMinecraft;
 import com.therandomlabs.curseapi.project.CurseProject;
 import net.dv8tion.jda.api.JDA;
@@ -15,8 +17,10 @@ import org.kohsuke.github.PagedSearchIterable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 public class Main {
@@ -48,7 +52,6 @@ public class Main {
             // parse the command line arguments
             CommandLine line = parser.parse(o, args);
             debug = line.hasOption("debug");
-
 
             System.out.println("Caught command line args!");
             useGithub = line.hasOption("github");
@@ -86,7 +89,6 @@ public class Main {
                 } catch (IOException e) {
                     System.err.println("Failed to connect to github!\n" + e.getMessage());
                 }
-
             }
             if (cfg.BOT_TOKEN.equals("InsertHere") || cfg.DefaultChannel.equals("000000000")) {
                 System.err.println("You didnt modify the config! This bot wont work without Channel ID or Token!");
@@ -100,6 +102,32 @@ public class Main {
                 System.err.println("<JDA> " + e.getMessage());
                 System.exit(1);
             }
+            
+            // Expand modpacks
+            ListIterator<String> it = cfg.IDs.listIterator();
+            while (it.hasNext()) {
+                try {
+                    String[] p = it.next().split(";;");
+                    final Optional<CurseProject> project = CurseAPI.project(Integer.parseInt(p[0]));
+                    if (!project.isPresent()) throw new CurseException("Project not found");
+                    final CurseProject pr = project.get();
+                    Set<CurseDependency> deps = pr.files().first().dependencies(CurseDependencyType.INCLUDE);
+                    if (deps.isEmpty()) continue;
+                    
+                    if (debug) System.out.println("Expanding modpack " + pr.name());
+                    // Remove modpack id from list
+                    it.remove();
+                    // Add modpack deps to list
+                    for (CurseDependency dep : deps) {
+                        if (debug) System.out.println("Adding modpack dep " + dep.project().name());
+                        p[0] = String.valueOf(dep.projectID());
+                        it.add(String.join(";;", p));
+                    }
+                } catch (CurseException e) {
+                    e.printStackTrace();
+                }
+            }
+            
             if (!cacheGenerated) {
                 System.out.println("Generating cache...");
                 for (String p : cfg.IDs) {
