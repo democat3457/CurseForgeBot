@@ -5,23 +5,34 @@ import com.therandomlabs.curseapi.CurseAPI;
 import com.therandomlabs.curseapi.CurseException;
 import com.therandomlabs.curseapi.file.CurseDependency;
 import com.therandomlabs.curseapi.file.CurseDependencyType;
+import com.therandomlabs.curseapi.game.CurseCategorySection;
 import com.therandomlabs.curseapi.minecraft.CurseAPIMinecraft;
 import com.therandomlabs.curseapi.project.CurseProject;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import org.apache.commons.cli.*;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.PagedSearchIterable;
 
+import java.io.InputStream;
 import java.io.IOException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 public class Main {
     public static final Cfg cfg = new Cfg();
@@ -38,7 +49,7 @@ public class Main {
 
     public static void main(String[] args) {
         CurseAPIMinecraft.initialize();
-
+        
         final Options o = new Options();
         o.addOption("debug", false, "Enables debug log");
         final Option token = new Option("token", true, "Provides the bot token");
@@ -111,19 +122,47 @@ public class Main {
                     final Optional<CurseProject> project = CurseAPI.project(Integer.parseInt(p[0]));
                     if (!project.isPresent()) throw new CurseException("Project not found");
                     final CurseProject pr = project.get();
-                    Set<CurseDependency> deps = pr.files().first().dependencies(CurseDependencyType.INCLUDE);
-                    if (deps.isEmpty()) continue;
+                    // Set<CurseDependency> deps = pr.files().first().dependencies();
+                    CurseCategorySection cs = pr.categorySection();
+                    
+                    if (debug) System.out.println(
+                            // "Project " + pr.name() + " has " + deps.size() + " dependencies\n" + 
+                            "Project " + pr.name() + " has category section of " + cs.toString());
+                    
+                    // Set<CurseDependency> filteredDeps = deps.stream()
+                    //         .filter(d -> d.type() == CurseDependencyType.INCLUDE)
+                    //         .collect(Collectors.toSet());
+                    if (//filteredDeps.isEmpty() && 
+                            cs.gameID() != 432 || // Check for MC
+                            (cs.id() != 11 && // Check for modpacks section
+                            cs.id() != 4471) // Not sure which id it returns
+                    ) continue;
                     
                     if (debug) System.out.println("Expanding modpack " + pr.name());
                     // Remove modpack id from list
                     it.remove();
                     // Add modpack deps to list
-                    for (CurseDependency dep : deps) {
+                    /* Modpacks don't use dependencies
+                    for (CurseDependency dep : filteredDeps) {
                         if (debug) System.out.println("Adding modpack dep " + dep.project().name());
                         p[0] = String.valueOf(dep.projectID());
                         it.add(String.join(";;", p));
                     }
-                } catch (CurseException e) {
+                    */
+                    File modpackZip = new File("latestModpack" + pr.id() + ".zip");
+                    URL modpackURL = pr.files().first().downloadURL().toUrl();
+                    FileUtils.copyURLToFile(modpackURL, modpackZip, 20000, 1200000);
+                    ZipFile zf = new ZipFile(modpackZip);
+                    
+                    for (Enumeration<? extends ZipEntry> e = zip.entries(); e.hasMoreElements(); ) {
+                        ZipEntry entry = (ZipEntry) e.nextElement();
+                        if (!entry.isDirectory() && 
+                                FilenameUtils.getName(entry.getName()).equals("manifest.json")) {
+                            InputStream in = zf.getInputStream(entry);
+                            String manifest = IOUtils.toString(in, StandardCharsets.UTF_8);
+                        }
+                    }
+                } catch (IOException | CurseException e) {
                     e.printStackTrace();
                 }
             }
