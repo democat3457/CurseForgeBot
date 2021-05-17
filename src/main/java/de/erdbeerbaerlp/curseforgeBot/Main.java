@@ -1,6 +1,5 @@
 package de.erdbeerbaerlp.curseforgeBot;
 
-
 import com.therandomlabs.curseapi.CurseAPI;
 import com.therandomlabs.curseapi.CurseException;
 import com.therandomlabs.curseapi.file.CurseDependency;
@@ -14,10 +13,15 @@ import org.apache.commons.cli.*;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.PagedSearchIterable;
+import org.stringtree.json.JSONReader;
+import org.stringtree.json.JSONValidatingReader;
 
+import java.io.File;
+import java.io.FileFilter;
 import java.io.InputStream;
 import java.io.IOException;
 import java.net.URL;
@@ -25,6 +29,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Optional;
@@ -38,6 +43,7 @@ public class Main {
     public static final Cfg cfg = new Cfg();
     static final Map<Integer, Integer> cache = new HashMap<>();
     static final int CFG_VERSION = 4;
+    static final File currentDir = new File(".");
     static GitHub github;
     static ArrayList<CurseforgeUpdateThread> threads = new ArrayList<>();
     static boolean cacheGenerated = Cfg.cacheFile.exists();
@@ -114,7 +120,7 @@ public class Main {
                 System.exit(1);
             }
             
-            // Expand modpacks
+            // Expand modpacks for convenience
             ListIterator<String> it = cfg.IDs.listIterator();
             while (it.hasNext()) {
                 try {
@@ -138,7 +144,7 @@ public class Main {
                             cs.id() != 4471) // Not sure which id it returns
                     ) continue;
                     
-                    if (debug) System.out.println("Expanding modpack " + pr.name());
+                    System.out.println("Expanding modpack " + pr.name());
                     // Remove modpack id from list
                     it.remove();
                     // Add modpack deps to list
@@ -149,17 +155,55 @@ public class Main {
                         it.add(String.join(";;", p));
                     }
                     */
-                    File modpackZip = new File("latestModpack" + pr.id() + ".zip");
-                    URL modpackURL = pr.files().first().downloadURL().toUrl();
-                    FileUtils.copyURLToFile(modpackURL, modpackZip, 20000, 1200000);
+                    File modpackZip = new File("latestModpack" + pr.id() + "-" + pr.files().first().id() + ".zip");
+                    if (!modpackZip.exists()) {
+                        System.out.println("Removing old modpack zips for " + pr.id());
+                        FileFilter ff = new WildcardFileFilter("latestModpack" + pr.id() + "*.zip");
+                        File[] files = currentDir.listFiles(ff);
+                        for (File deleteFile : files) {
+                            deleteFile.delete();
+                        }
+                        
+                        System.out.println("Downloading latest modpack zip for " + pr.id());
+                        URL modpackURL = pr.files().first().downloadURL().url();
+                        FileUtils.copyURLToFile(modpackURL, modpackZip, 20000, 1200000);
+                    }
+                    
                     ZipFile zf = new ZipFile(modpackZip);
                     
-                    for (Enumeration<? extends ZipEntry> e = zip.entries(); e.hasMoreElements(); ) {
+                    for (Enumeration<? extends ZipEntry> e = zf.entries(); e.hasMoreElements(); ) {
                         ZipEntry entry = (ZipEntry) e.nextElement();
+                        if (debug) System.out.println("zip entry name: " + entry.getName());
                         if (!entry.isDirectory() && 
                                 FilenameUtils.getName(entry.getName()).equals("manifest.json")) {
+                            if (debug) System.out.println("manifest.json found");
                             InputStream in = zf.getInputStream(entry);
                             String manifest = IOUtils.toString(in, StandardCharsets.UTF_8);
+                            // if (debug) System.out.println(manifest);
+                            
+                            JSONReader reader = new JSONValidatingReader();
+                            Object manifestObj = reader.read(manifest);
+                            if (manifestObj instanceof Map) {
+                                if (debug) System.out.println("manifest map found");
+                                @SuppressWarnings("unchecked") Map<Object, Object> manifestMap = (Map<Object, Object>) manifestObj;
+                                if (manifestMap.containsKey("files") && manifestMap.get("files") instanceof List) {
+                                    if (debug) System.out.println("files array found");
+                                    @SuppressWarnings("unchecked") List<Object> filesList = (List<Object>) manifestMap.get("files");
+                                    for (Object obj : filesList) {
+                                        if (obj instanceof Map) {
+                                            // if (debug) System.out.println("file obj found");
+                                            @SuppressWarnings("unchecked") Map<Object, Object> fileMap = (Map<Object, Object>) obj;
+                                            if (fileMap.containsKey("projectID") && fileMap.get("projectID") instanceof Long) {
+                                                p[0] = ((Long) fileMap.get("projectID")).toString();
+                                                if (debug) System.out.println("Adding modpack dep id " + p[0] + " in modpack " + pr.id());
+                                                it.add(String.join(";;", p));
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            break;
                         }
                     }
                 } catch (IOException | CurseException e) {

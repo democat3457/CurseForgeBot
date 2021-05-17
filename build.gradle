@@ -2,9 +2,11 @@ plugins {
     id 'java'
     id 'application'
 }
-version = '1.2.5'
+
+version = '1.2.6'
 group = "de.erdbeerbaerlp.curseforgeBot" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 mainClassName = 'de.erdbeerbaerlp.curseforgeBot.Main'
+
 repositories {
     mavenCentral()
     maven {
@@ -15,33 +17,37 @@ repositories {
         url 'https://m2.dv8tion.net/releases'
     }
 }
+
 configurations {
     embed
     compile.extendsFrom(embed)
 }
+
 dependencies {
     embed('net.dv8tion:JDA:4.2.1_253'){
         transitive = true
         exclude module: 'opus-java'
-
     }
+    
     embed('com.github.TheRandomLabs:CurseAPI:master-SNAPSHOT'){
         transitive = true
     }
     embed('com.github.TheRandomLabs:CurseAPI-Minecraft:master-SNAPSHOT'){
         transitive = true
     }
+    
     embed 'com.typesafe:config:1.4.1'
     embed 'es.nitaur.markdown:txtmark:0.16'
+    embed files('libs/stringtree-json-2.0.9.jar')
+    
     embed 'commons-cli:commons-cli:1.4'
     embed 'commons-io:commons-io:2.8.0'
     embed('org.kohsuke:github-api:1.128'){
         exclude module: 'okhttp'
     }
-    embed 'org.apache.tika:tika-parsers:1.26'
 }
-jar {
 
+jar {
     configurations.embed.each { dep ->
         from(project.zipTree(dep)) {
             exclude 'META-INF', 'META-INF/**'
@@ -53,8 +59,9 @@ jar {
         )
     }
 }
+
 gradle.projectsEvaluated {
     tasks.withType(JavaCompile) {
-        options.compilerArgs << "-Xlint:deprecation"
+        options.compilerArgs << "-Xlint:deprecation" << "-Xlint:unchecked"
     }
 } 
