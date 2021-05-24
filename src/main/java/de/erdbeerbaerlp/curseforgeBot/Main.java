@@ -243,7 +243,7 @@ public class Main {
                     if (debug) System.out.println("Starting update thread " + p);
                     new CurseforgeUpdateThread(p).start();
                     Thread.sleep(100);
-                } catch (CurseException e) {
+                } catch (InterruptedException | CurseException e) {
                     e.printStackTrace();
                 }
             }
