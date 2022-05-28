@@ -1,29 +1,9 @@
 package de.erdbeerbaerlp.curseforgeBot;
 
-import com.therandomlabs.curseapi.CurseAPI;
-import com.therandomlabs.curseapi.CurseException;
-import com.therandomlabs.curseapi.file.CurseDependency;
-import com.therandomlabs.curseapi.file.CurseDependencyType;
-import com.therandomlabs.curseapi.game.CurseCategorySection;
-import com.therandomlabs.curseapi.minecraft.CurseAPIMinecraft;
-import com.therandomlabs.curseapi.project.CurseProject;
-import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.JDABuilder;
-import org.apache.commons.cli.*;
-import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.io.filefilter.WildcardFileFilter;
-import org.kohsuke.github.GHRepository;
-import org.kohsuke.github.GitHub;
-import org.kohsuke.github.PagedSearchIterable;
-import org.stringtree.json.JSONReader;
-import org.stringtree.json.JSONValidatingReader;
-
 import java.io.File;
 import java.io.FileFilter;
-import java.io.InputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -33,11 +13,34 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+
+import com.therandomlabs.curseapi.CurseAPI;
+import com.therandomlabs.curseapi.CurseException;
+import com.therandomlabs.curseapi.game.CurseCategorySection;
+import com.therandomlabs.curseapi.minecraft.CurseAPIMinecraft;
+import com.therandomlabs.curseapi.project.CurseProject;
+
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.filefilter.WildcardFileFilter;
+import org.kohsuke.github.GHRepository;
+import org.kohsuke.github.GitHub;
+import org.kohsuke.github.PagedSearchIterable;
+import org.stringtree.json.JSONReader;
+import org.stringtree.json.JSONValidatingReader;
+
+import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.JDABuilder;
 
 public class Main {
     public static final Cfg cfg = new Cfg();
@@ -169,41 +172,41 @@ public class Main {
                         FileUtils.copyURLToFile(modpackURL, modpackZip, 20000, 1200000);
                     }
                     
-                    ZipFile zf = new ZipFile(modpackZip);
-                    
-                    for (Enumeration<? extends ZipEntry> e = zf.entries(); e.hasMoreElements(); ) {
-                        ZipEntry entry = (ZipEntry) e.nextElement();
-                        if (debug) System.out.println("zip entry name: " + entry.getName());
-                        if (!entry.isDirectory() && 
-                                FilenameUtils.getName(entry.getName()).equals("manifest.json")) {
-                            if (debug) System.out.println("manifest.json found");
-                            InputStream in = zf.getInputStream(entry);
-                            String manifest = IOUtils.toString(in, StandardCharsets.UTF_8);
-                            // if (debug) System.out.println(manifest);
-                            
-                            JSONReader reader = new JSONValidatingReader();
-                            Object manifestObj = reader.read(manifest);
-                            if (manifestObj instanceof Map) {
-                                if (debug) System.out.println("manifest map found");
-                                @SuppressWarnings("unchecked") Map<Object, Object> manifestMap = (Map<Object, Object>) manifestObj;
-                                if (manifestMap.containsKey("files") && manifestMap.get("files") instanceof List) {
-                                    if (debug) System.out.println("files array found");
-                                    @SuppressWarnings("unchecked") List<Object> filesList = (List<Object>) manifestMap.get("files");
-                                    for (Object obj : filesList) {
-                                        if (obj instanceof Map) {
-                                            // if (debug) System.out.println("file obj found");
-                                            @SuppressWarnings("unchecked") Map<Object, Object> fileMap = (Map<Object, Object>) obj;
-                                            if (fileMap.containsKey("projectID") && fileMap.get("projectID") instanceof Long) {
-                                                p[0] = ((Long) fileMap.get("projectID")).toString();
-                                                if (debug) System.out.println("Adding modpack dep id " + p[0] + " in modpack " + pr.id());
-                                                it.add(String.join(";;", p));
+                    try (ZipFile zf = new ZipFile(modpackZip)) {
+                        for (Enumeration<? extends ZipEntry> e = zf.entries(); e.hasMoreElements(); ) {
+                            ZipEntry entry = (ZipEntry) e.nextElement();
+                            if (debug) System.out.println("zip entry name: " + entry.getName());
+                            if (!entry.isDirectory() && 
+                                    FilenameUtils.getName(entry.getName()).equals("manifest.json")) {
+                                if (debug) System.out.println("manifest.json found");
+                                InputStream in = zf.getInputStream(entry);
+                                String manifest = IOUtils.toString(in, StandardCharsets.UTF_8);
+                                // if (debug) System.out.println(manifest);
+                                
+                                JSONReader reader = new JSONValidatingReader();
+                                Object manifestObj = reader.read(manifest);
+                                if (manifestObj instanceof Map) {
+                                    if (debug) System.out.println("manifest map found");
+                                    @SuppressWarnings("unchecked") Map<Object, Object> manifestMap = (Map<Object, Object>) manifestObj;
+                                    if (manifestMap.containsKey("files") && manifestMap.get("files") instanceof List) {
+                                        if (debug) System.out.println("files array found");
+                                        @SuppressWarnings("unchecked") List<Object> filesList = (List<Object>) manifestMap.get("files");
+                                        for (Object obj : filesList) {
+                                            if (obj instanceof Map) {
+                                                // if (debug) System.out.println("file obj found");
+                                                @SuppressWarnings("unchecked") Map<Object, Object> fileMap = (Map<Object, Object>) obj;
+                                                if (fileMap.containsKey("projectID") && fileMap.get("projectID") instanceof Long) {
+                                                    p[0] = ((Long) fileMap.get("projectID")).toString();
+                                                    if (debug) System.out.println("Adding modpack dep id " + p[0] + " in modpack " + pr.id());
+                                                    it.add(String.join(";;", p));
+                                                }
                                             }
                                         }
                                     }
                                 }
+                                
+                                break;
                             }
-                            
-                            break;
                         }
                     }
                 } catch (IOException | CurseException e) {
